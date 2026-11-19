@@ -1,3 +1,4 @@
+
 export type TelegramChatType = "private" | "group" | "supergroup" | "channel";
 
 export interface TelegramChat {
@@ -68,11 +69,26 @@ export interface TelegramAnimation {
   duration?: number;
 }
 
+export interface TelegramForumTopicCreated {
+  name: string;
+  icon_color?: number;
+  icon_custom_emoji_id?: string;
+}
+
+export interface TelegramForumTopicEdited {
+  name?: string;
+  icon_custom_emoji_id?: string;
+}
+
 export interface TelegramMessage {
   message_id: number;
   date: number;
   chat: TelegramChat;
   from?: TelegramUser;
+  message_thread_id?: number;
+  is_topic_message?: boolean;
+  forum_topic_created?: TelegramForumTopicCreated;
+  forum_topic_edited?: TelegramForumTopicEdited;
   text?: string;
   caption?: string;
   document?: TelegramDocument;
@@ -103,6 +119,7 @@ export interface ChatMemberAdministratorRights {
   can_post_messages?: boolean;
   can_edit_messages?: boolean;
   can_pin_messages?: boolean;
+  can_manage_topics?: boolean;
 }
 
 export interface TelegramChatMember extends ChatMemberAdministratorRights {
