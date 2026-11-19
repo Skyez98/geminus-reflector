@@ -1,3 +1,4 @@
+
 import { TelegramApiError } from "./errors";
 import type {
   TelegramApiResponse,
@@ -19,10 +20,18 @@ export interface PromoteRights {
   can_change_info?: boolean;
   can_pin_messages?: boolean;
   can_manage_chat?: boolean;
+  can_manage_topics?: boolean;
 }
 
 export interface CopyResult {
   message_id: number;
+}
+
+export interface ForumTopic {
+  message_thread_id: number;
+  name: string;
+  icon_color?: number;
+  icon_custom_emoji_id?: string;
 }
 
 export class TelegramClient {
@@ -123,12 +132,43 @@ export class TelegramClient {
     return this.call("deleteMessage", { chat_id: chatId, message_id: messageId });
   }
 
-  copyMessage(destChatId: string | number, sourceChatId: string | number, messageId: number): Promise<CopyResult> {
-    return this.call("copyMessage", { chat_id: destChatId, from_chat_id: sourceChatId, message_id: messageId });
+  createForumTopic(chatId: string | number, name: string): Promise<ForumTopic> {
+    return this.call("createForumTopic", {
+      chat_id: chatId,
+      name,
+    });
   }
 
-  copyMessages(destChatId: string | number, sourceChatId: string | number, messageIds: number[]): Promise<CopyResult[]> {
-    return this.call("copyMessages", { chat_id: destChatId, from_chat_id: sourceChatId, message_ids: messageIds });
+  copyMessage(
+    destChatId: string | number,
+    sourceChatId: string | number,
+    messageId: number,
+    destinationThreadId?: number,
+  ): Promise<CopyResult> {
+    return this.call("copyMessage", {
+      chat_id: destChatId,
+      from_chat_id: sourceChatId,
+      message_id: messageId,
+      ...(destinationThreadId !== undefined
+        ? { message_thread_id: destinationThreadId }
+        : {}),
+    });
+  }
+
+  copyMessages(
+    destChatId: string | number,
+    sourceChatId: string | number,
+    messageIds: number[],
+    destinationThreadId?: number,
+  ): Promise<CopyResult[]> {
+    return this.call("copyMessages", {
+      chat_id: destChatId,
+      from_chat_id: sourceChatId,
+      message_ids: messageIds,
+      ...(destinationThreadId !== undefined
+        ? { message_thread_id: destinationThreadId }
+        : {}),
+    });
   }
 }
 
