@@ -24,9 +24,26 @@ export async function ensureDatabaseBootstrap(db: D1Database): Promise<void> {
       .first<{ name: string }>();
 
     if (existing) {
-      bootstrapDone = true;
-      return;
-    }
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS task_topic_mappings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      source_thread_id INTEGER NOT NULL,
+      dest_thread_id INTEGER NOT NULL,
+      topic_name TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(task_id, source_thread_id)
+    )
+  `).run();
+
+      await db.prepare(`
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_task_topic_mappings_source
+  ON task_topic_mappings(task_id, source_thread_id)
+`).run();
+
+  bootstrapDone = true;
+  return;
+}
 
     // New or uninitialized database: provision all tables and indexes in a single atomic batch
     await db.batch([
@@ -76,6 +93,15 @@ export async function ensureDatabaseBootstrap(db: D1Database): Promise<void> {
         filter_min_size_bytes INTEGER,
         filter_max_size_bytes INTEGER,
         live_skipped INTEGER NOT NULL DEFAULT 0
+      )`),
+            db.prepare(`CREATE TABLE IF NOT EXISTS task_topic_mappings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+        source_thread_id INTEGER NOT NULL,
+        dest_thread_id INTEGER NOT NULL,
+        topic_name TEXT,
+        created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+        UNIQUE(task_id, source_thread_id)
       )`),
       db.prepare(`CREATE TABLE IF NOT EXISTS task_activity_log (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -129,6 +155,7 @@ export async function ensureDatabaseBootstrap(db: D1Database): Promise<void> {
       db.prepare(`CREATE INDEX IF NOT EXISTS idx_task_activity_log_task_id ON task_activity_log(task_id, at DESC)`),
       db.prepare(`CREATE INDEX IF NOT EXISTS idx_saved_tasks_task_id ON saved_tasks(task_id)`),
       db.prepare(`CREATE INDEX IF NOT EXISTS idx_pending_messages_task_id ON task_pending_messages(task_id, id ASC)`),
+      db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS idx_task_topic_mappings_source ON task_topic_mappings(task_id, source_thread_id)`),
       db.prepare(`CREATE INDEX IF NOT EXISTS idx_updates_bot_id ON updates(bot_id, received_at DESC)`),
     ]);
 
